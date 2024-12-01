@@ -71,78 +71,92 @@
 </template>
 
 <script>
-import axios from "axios";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '@/services/api';
 
 export default {
-    data() {
-        return {
-            quiz: null,
-            currentQuestion: 0,
-            score: 0,
-        };
-    },
-    methods: {
-        async fetchQuiz() {
-            const quizId = this.$route.params.id;
+    setup() {
+        const quiz = ref(null);
+        const currentQuestion = ref(0);
+        const score = ref(0);
+        const loading = ref(true);
+        const error = ref(null);
+        const router = useRouter();
+
+        const fetchQuiz = async () => {
+            const quizId = router.currentRoute.value.params.id;
+            loading.value = true;
             try {
-                const response = await axios.get(`/quizzes/${quizId}`);
-                this.quiz = response.data;
+                const response = await api.get(`/quizzes/${quizId}`);
+                quiz.value = response.data;
+                if (!quiz.value || !quiz.value.questions || !quiz.value.questions.length) {
+                    throw new Error('Invalid quiz data');
+                }
             } catch (error) {
                 console.error("Error fetching quiz:", error);
-                this.$router.push('/quizzes'); // Redirect if quiz not found
+                error.value = "Failed to load quiz";
+                router.push('/quizzes');
+            } finally {
+                loading.value = false;
             }
-        },
-        checkAnswer(selectedOptionIndex) {
-            const correctAnswerIndex = this.quiz.questions[this.currentQuestion].correctAnswer;
-            if (selectedOptionIndex === correctAnswerIndex) {
-                this.score++;
-            }
-            if (this.currentQuestion < this.quiz.questions.length - 1) {
-                this.currentQuestion++;
-            } else {
-                this.currentQuestion = null; // End of quiz
-            }
-        },
-        async saveAttempt() {
-            const quizId = this.quiz._id;
-            const scorePercentage = (this.score / this.quiz.questions.length) * 100;
+        };
 
+        const checkAnswer = (selectedOptionIndex) => {
+            if (!quiz.value || currentQuestion.value === null) return;
+            
+            const correctAnswerIndex = quiz.value.questions[currentQuestion.value].correctAnswer;
+            if (selectedOptionIndex === correctAnswerIndex) {
+                score.value++;
+            }
+            
+            if (currentQuestion.value < quiz.value.questions.length - 1) {
+                currentQuestion.value++;
+            } else {
+                currentQuestion.value = null; // End of quiz
+            }
+        };
+
+        const saveAttempt = async () => {
+            if (!quiz.value) return;
+            
+            const scorePercentage = (score.value / quiz.value.questions.length) * 100;
             try {
-                await axios.post(`http://localhost:3000/api/users/attempts`, {
-                    quizId,
+                await api.post('/users/attempts', {
+                    quizId: quiz.value._id,
                     score: scorePercentage
-                }, {
-                    withCredentials: true
                 });
-                this.$toast.success("Attempt saved successfully!", { position: "bottom-left", duration: 1000 });
+                
+                router.push('/dashboard');
             } catch (error) {
-                if (error.response && error.response.status === 401) {
-                    this.$toast.error("Please log in to save your attempt.", { position: "bottom-left", duration: 1000 });
-                } else {
-                    this.$toast.error("An error occurred while saving the attempt.", { position: "bottom-left", duration: 1000 });
+                if (error.response?.status === 401) {
+                    router.push('/login');
                 }
                 console.error("Error saving attempt:", error);
             }
-        },
-        getScoreMessage() {
-            const percentage = (this.score / this.quiz.questions.length) * 100;
+        };
+
+        const getScoreMessage = () => {
+            if (!quiz.value) return '';
+            const percentage = (score.value / quiz.value.questions.length) * 100;
             if (percentage === 100) return "Perfect Score! Excellent Job!";
             if (percentage >= 80) return "Great Performance!";
             if (percentage >= 60) return "Good Job! Keep Improving!";
             if (percentage >= 40) return "Not Bad, But You Can Do Better!";
             return "Need More Practice!";
-        },
-        getScoreColor(percentage) {
-            if (percentage === 100) return "#00AA48";
-            if (percentage >= 80) return "#00AA48";
-            if (percentage >= 60) return "#00AA48";
-            if (percentage >= 40) return "#00AA48";
-            return "#00AA48";
-        }
-    },
-    mounted() {
-        this.fetchQuiz();
-    },
+        };
+
+        return {
+            quiz,
+            currentQuestion,
+            score,
+            loading,
+            error,
+            checkAnswer,
+            saveAttempt,
+            getScoreMessage
+        };
+    }
 };
 </script>
 

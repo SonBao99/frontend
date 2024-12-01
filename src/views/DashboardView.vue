@@ -97,7 +97,7 @@ export default {
 
             loading.value = true;
             try {
-                const response = await api.get('/users/me');
+                const response = await api.get('/users');
                 const userData = response.data;
                 
                 if (!userData) {
