@@ -59,16 +59,13 @@ export default {
           }
         });
 
-        if (response.data && response.data.user) {
-          // First update Vuex store
+        if (response.data && response.data.data) {
+          await this.$store.commit('setUser', response.data.data);
           await this.$store.commit('setUserLoggedIn', true);
-          await this.$store.commit('setUser', response.data.user);
           
-          // Then update localStorage
           localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userData', JSON.stringify(response.data.user));
+          localStorage.setItem('userData', JSON.stringify(response.data.data));
 
-          // Navigate to quizzes page
           await this.$router.push("/quizzes");
           this.$toast.success("Logged in successfully.", {
             position: "bottom-left", 
@@ -90,7 +87,6 @@ export default {
           duration: 2000
         });
         
-        // Clear any partial state
         this.$store.commit('setUserLoggedIn', false);
         this.$store.commit('setUser', null);
         localStorage.removeItem('isLoggedIn');
