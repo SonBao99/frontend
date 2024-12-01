@@ -85,7 +85,7 @@ export default {
         async fetchQuiz() {
             const quizId = this.$route.params.id;
             try {
-                const response = await axios.get(`http://localhost:3000/api/quizzes/${quizId}`);
+                const response = await axios.get(`/quizzes/${quizId}`);
                 this.quiz = response.data;
             } catch (error) {
                 console.error("Error fetching quiz:", error);

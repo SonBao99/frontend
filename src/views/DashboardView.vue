@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';

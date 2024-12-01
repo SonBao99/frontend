@@ -158,7 +158,7 @@ export default {
 
             try {
                 
-                const response = await axios.get("http://localhost:3000/api/quizzes", {
+                const response = await axios.get("/quizzes", {
                     params: {
                         populate: 'questions' 
                     }
@@ -208,7 +208,7 @@ export default {
         async deleteQuiz(quizId) {
             if (confirm('Are you sure you want to delete this quiz?')) {
                 try {
-                    await axios.delete(`http://localhost:3000/api/quizzes/${quizId.trim()}`, {
+                    await axios.delete(`/quizzes/${quizId.trim()}`, {
                         withCredentials: true
                     });
                     this.$toast.success('Quiz deleted successfully', {
