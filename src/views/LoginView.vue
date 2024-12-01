@@ -45,11 +45,6 @@ export default {
       rememberMe: false
     }
   },
-  computed: {
-    isUserLoggedIn() {
-      return this.$store.state.userLoggedIn;
-    }
-  },
   methods: {
     async login() {
       try {
@@ -64,48 +59,42 @@ export default {
           }
         });
 
-        if (response.data) {
-          // Store user data and login state
+        if (response.data && response.data.user) {
+          // First update Vuex store
+          await this.$store.commit('setUserLoggedIn', true);
+          await this.$store.commit('setUser', response.data.user);
+          
+          // Then update localStorage
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userData', JSON.stringify(response.data.user));
-          
-          // Update Vuex store
-          this.$store.commit('setUserLoggedIn', true);
-          this.$store.commit('setUser', response.data.user);
-          
+
+          // Navigate to quizzes page
           await this.$router.push("/quizzes");
           this.$toast.success("Logged in successfully.", {
             position: "bottom-left", 
             duration: 1000
           });
+        } else {
+          throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.log(err); // Inspect error structure
+        console.error('Login error:', err);
         let errorMessage = "Authentication failed!";
-
-        if (err.response?.data?.details) {
-          errorMessage = err.response.data.details; // Use the `details` field
-        } else if (err.response) {
-          switch (err.response.status) {
-            case 404:
-              errorMessage = "Email not found. Please check your email or register.";
-              break;
-            case 401:
-              errorMessage = "Invalid password. Please try again.";
-              break;
-            case 500:
-              errorMessage = "Server error. Please try again later.";
-              break;
-            default:
-              errorMessage = "An unexpected error occurred.";
-          }
+        
+        if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
         }
-
-
+        
         this.$toast.error(errorMessage, {
           position: "bottom-left",
           duration: 2000
         });
+        
+        // Clear any partial state
+        this.$store.commit('setUserLoggedIn', false);
+        this.$store.commit('setUser', null);
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userData');
       }
     }
   }
