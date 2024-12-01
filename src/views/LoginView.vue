@@ -65,7 +65,14 @@ export default {
         });
 
         if (response.data) {
-          await this.$store.commit('setUserLoggedIn', true);
+          // Store user data and login state
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userData', JSON.stringify(response.data.user));
+          
+          // Update Vuex store
+          this.$store.commit('setUserLoggedIn', true);
+          this.$store.commit('setUser', response.data.user);
+          
           await this.$router.push("/quizzes");
           this.$toast.success("Logged in successfully.", {
             position: "bottom-left", 
@@ -73,11 +80,11 @@ export default {
           });
         }
       } catch (err) {
-        console.error('Login error:', err);
+        console.log(err); // Inspect error structure
         let errorMessage = "Authentication failed!";
 
         if (err.response?.data?.details) {
-          errorMessage = err.response.data.details;
+          errorMessage = err.response.data.details; // Use the `details` field
         } else if (err.response) {
           switch (err.response.status) {
             case 404:
@@ -93,6 +100,7 @@ export default {
               errorMessage = "An unexpected error occurred.";
           }
         }
+
 
         this.$toast.error(errorMessage, {
           position: "bottom-left",

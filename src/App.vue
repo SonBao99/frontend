@@ -13,6 +13,7 @@ import NavigationComp from './components/NavigationComp.vue';
 import SideNav from './components/SideNav.vue';
 
 export default {
+  name: 'App',
   components: {
     NavigationComp,
     SideNav
@@ -20,6 +21,16 @@ export default {
   computed: {
     showSideNav() {
       return this.$route.path !== '/login' && this.$route.path !== '/register';
+    }
+  },
+  created() {
+    // Check if user is logged in from localStorage
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    
+    if (isLoggedIn && userData) {
+      this.$store.commit('setUserLoggedIn', true);
+      this.$store.commit('setUser', userData);
     }
   }
 }
