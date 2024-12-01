@@ -108,6 +108,7 @@
 
 <script>
 import axios from 'axios';
+import api from '@/services/api';
 
 export default {
     name: 'QuizCreationView',
@@ -199,9 +200,7 @@ export default {
             }
 
             try {
-                await axios.post('http://localhost:3000/api/quizzes', this.quizData, {
-                    withCredentials: true
-                });
+                await api.post('/quizzes', this.quizData);
                 this.$toast.success('Quiz created successfully!', {
                     position: 'bottom-left',
                     duration: 2000

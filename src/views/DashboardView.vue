@@ -74,6 +74,7 @@
 import axios from 'axios';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '@/services/api';
 
 export default {
     name: 'DashboardView',
@@ -85,7 +86,7 @@ export default {
 
         const fetchDashboardData = async () => {
             try {
-                const statsRes = await axios.get('http://localhost:3000/api/users', { withCredentials: true });
+                const statsRes = await api.get('/users');
                 const userData = statsRes.data.data;
                 
                 stats.value = {

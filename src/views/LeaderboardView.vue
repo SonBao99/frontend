@@ -56,6 +56,7 @@
 
 <script>
 import axios from 'axios';
+import api from '@/services/api';
 
 export default {
     name: 'LeaderboardView',
@@ -77,7 +78,7 @@ export default {
     methods: {
         async fetchLeaderboards() {
             try {
-                const response = await axios.get('http://localhost:3000/api/leaderboard');
+                const response = await api.get('/leaderboard');
                 this.quizzes = response.data;
             } catch (error) {
                 console.error('Error fetching leaderboard:', error);

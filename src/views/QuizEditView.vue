@@ -113,6 +113,7 @@
 
 <script>
 import axios from 'axios';
+import api from '@/services/api';
 
 export default {
     name: 'QuizEditView',
@@ -134,7 +135,7 @@ export default {
     methods: {
         async fetchQuiz() {
             try {
-                const response = await axios.get(`http://localhost:3000/api/quizzes/${this.$route.params.id}`);
+                const response = await api.get(`/quizzes/${this.$route.params.id}`);
                 this.quizData = response.data;
             } catch (error) {
                 this.$toast.error('Failed to fetch quiz data', {
