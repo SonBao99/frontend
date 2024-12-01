@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 
@@ -101,6 +101,10 @@ export default {
                 loading.value = false;
             }
         };
+
+        onMounted(() => {
+            fetchQuiz();
+        });
 
         const checkAnswer = (selectedOptionIndex) => {
             if (!quiz.value || currentQuestion.value === null) return;
@@ -136,16 +140,6 @@ export default {
             }
         };
 
-        const getScoreMessage = () => {
-            if (!quiz.value) return '';
-            const percentage = (score.value / quiz.value.questions.length) * 100;
-            if (percentage === 100) return "Perfect Score! Excellent Job!";
-            if (percentage >= 80) return "Great Performance!";
-            if (percentage >= 60) return "Good Job! Keep Improving!";
-            if (percentage >= 40) return "Not Bad, But You Can Do Better!";
-            return "Need More Practice!";
-        };
-
         return {
             quiz,
             currentQuestion,
@@ -153,8 +147,7 @@ export default {
             loading,
             error,
             checkAnswer,
-            saveAttempt,
-            getScoreMessage
+            saveAttempt
         };
     }
 };
