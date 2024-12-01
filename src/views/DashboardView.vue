@@ -12,7 +12,7 @@
                 </div>
                 <div class="stat-content">
                     <h3>Total Quizzes Taken</h3>
-                    <p class="stat-value">{{ stats.totalQuizzes || 0 }}</p>
+                    <p class="stat-value">{{ stats.totalAttempts || 0 }}</p>
                 </div>
             </div>
 
@@ -85,6 +85,7 @@ export default {
         const router = useRouter();
         const store = useStore();
         const error = ref(null);
+        const loading = ref(true);
 
         const isLoggedIn = computed(() => store.state.userLoggedIn);
 
@@ -94,26 +95,27 @@ export default {
                 return;
             }
 
+            loading.value = true;
             try {
-                const statsRes = await api.get('/users');
-                const userData = statsRes.data.data;
+                const response = await api.get('/users/me');
+                const userData = response.data;
                 
                 if (!userData) {
                     throw new Error('No user data received');
                 }
 
-                stats.value = {
-                    totalQuizzes: userData.attempts?.length || 0,
-                    averageScore: userData.attempts?.length 
-                        ? userData.attempts.reduce((sum, att) => sum + att.score, 0) / userData.attempts.length 
-                        : 0,
-                    bestScore: userData.attempts?.length 
-                        ? Math.max(...userData.attempts.map(att => att.score)) 
-                        : 0
-                };
+                user.value = userData;
                 
-                recentAttempts.value = userData.attempts
-                    ?.sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken))
+                // Calculate stats from user data
+                stats.value = {
+                    totalAttempts: userData.attempts?.length || 0,
+                    averageScore: calculateAverageScore(userData.attempts),
+                    bestScore: calculateBestScore(userData.attempts)
+                };
+
+                // Get recent attempts
+                recentAttempts.value = (userData.attempts || [])
+                    .sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken))
                     .slice(0, 5)
                     .map(attempt => ({
                         _id: attempt._id,
@@ -121,57 +123,30 @@ export default {
                         score: attempt.score,
                         date: attempt.dateTaken,
                         quizId: attempt.quizId?._id
-                    })) || [];
-                
-                user.value = userData;
+                    }));
+
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
                 if (error.response?.status === 401) {
                     router.push('/login');
-                }
-                error.value = 'Failed to load dashboard data';
-            }
-        };
-
-        const retakeQuiz = (quizId) => {
-            router.push(`/quizzes/${quizId}`);
-        };
-
-        const formatDate = (date) => {
-            if (!date) return 'No date';
-            try {
-                const now = new Date();
-                const attemptDate = new Date(date);
-                const diffInSeconds = Math.floor((now - attemptDate) / 1000);
-
-                if (diffInSeconds < 60) {
-                    return 'just now';
-                } else if (diffInSeconds < 3600) {
-                    const minutes = Math.floor(diffInSeconds / 60);
-                    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-                } else if (diffInSeconds < 86400) {
-                    const hours = Math.floor(diffInSeconds / 3600);
-                    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-                } else if (diffInSeconds < 604800) {
-                    const days = Math.floor(diffInSeconds / 86400);
-                    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+                    error.value = 'Please log in to view your dashboard';
                 } else {
-                    return attemptDate.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                    });
+                    error.value = 'Failed to load dashboard data';
                 }
-            } catch (error) {
-                console.error('Error formatting date:', error);
-                return 'Invalid Date';
+            } finally {
+                loading.value = false;
             }
         };
 
-        const getScoreClass = (score) => {
-            if (score >= 80) return 'excellent';
-            if (score >= 60) return 'good';
-            return 'needs-improvement';
+        const calculateAverageScore = (attempts) => {
+            if (!attempts?.length) return 0;
+            const sum = attempts.reduce((acc, att) => acc + att.score, 0);
+            return (sum / attempts.length).toFixed(1);
+        };
+
+        const calculateBestScore = (attempts) => {
+            if (!attempts?.length) return 0;
+            return Math.max(...attempts.map(att => att.score)).toFixed(1);
         };
 
         onMounted(() => {
@@ -187,9 +162,8 @@ export default {
             stats,
             recentAttempts,
             error,
-            formatDate,
-            getScoreClass,
-            retakeQuiz
+            loading,
+            retakeQuiz: (quizId) => router.push(`/quizzes/${quizId}`)
         };
     }
 };

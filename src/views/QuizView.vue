@@ -138,24 +138,17 @@ export default {
             this.error = null;
 
             try {
-                const response = await api.get("/quizzes", {
-                    params: {
-                        populate: 'questions'
-                    }
-                });
-
+                const response = await api.get("/quizzes");
+                
                 // Log the response to see its structure
                 console.log('API Response:', response.data);
 
-                // Ensure we have valid data to work with
-                if (!response.data) {
-                    throw new Error('No data received from server');
+                if (!response.data || !response.data.data) {
+                    throw new Error('Invalid response format');
                 }
 
                 // Transform the data based on the actual response structure
-                const quizData = response.data;
-                
-                this.quizzes = (Array.isArray(quizData) ? quizData : [quizData])
+                this.quizzes = response.data.data
                     .filter(quiz => quiz && typeof quiz === 'object')
                     .map(quiz => ({
                         _id: quiz._id || '',
