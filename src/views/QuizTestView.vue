@@ -102,6 +102,22 @@ export default {
             }
         };
 
+        const getScoreColor = (percentage) => {
+            if (percentage >= 80) return '#00AA48'; // Green
+            if (percentage >= 60) return '#F59E0B'; // Yellow
+            return '#EF4444'; // Red
+        };
+
+        const getScoreMessage = () => {
+            if (!quiz.value) return '';
+            const percentage = (score.value / quiz.value.questions.length) * 100;
+            if (percentage === 100) return "Perfect Score! Excellent Job!";
+            if (percentage >= 80) return "Great Performance!";
+            if (percentage >= 60) return "Good Job! Keep Improving!";
+            if (percentage >= 40) return "Not Bad, But You Can Do Better!";
+            return "Need More Practice!";
+        };
+
         onMounted(() => {
             fetchQuiz();
         });
@@ -147,7 +163,9 @@ export default {
             loading,
             error,
             checkAnswer,
-            saveAttempt
+            saveAttempt,
+            getScoreColor,
+            getScoreMessage
         };
     }
 };
