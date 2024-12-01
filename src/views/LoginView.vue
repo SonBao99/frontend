@@ -53,7 +53,7 @@ export default {
   methods: {
     async login() {
       try {
-        const response = await axios.post('https://backend-chih.onrender.com/api/login', {
+        const response = await axios.post('https://backend-chih.onrender.com/api/users/login', {
           email: this.email,
           password: this.password,
           rememberMe: this.rememberMe
