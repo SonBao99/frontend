@@ -97,7 +97,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from '@/services/api';
 
 export default {
     data() {
@@ -138,37 +138,61 @@ export default {
             this.error = null;
 
             try {
-                
-                const response = await axios.get("https://backend-chih.onrender.com/api/quizzes", {
+                const response = await api.get("/quizzes", {
                     params: {
-                        populate: 'questions' 
+                        populate: 'questions'
                     }
                 });
 
-                // Validate and transform quiz data
-                this.quizzes = response.data.map(quiz => ({
-                    ...quiz,
-                    duration: this.calculateQuizDuration(quiz),
-                    category: quiz.category || 'General'
-                })).filter(quiz => quiz.questions && quiz.questions.length > 0);
+                // Log the response to see its structure
+                console.log('API Response:', response.data);
+
+                // Ensure we have valid data to work with
+                if (!response.data) {
+                    throw new Error('No data received from server');
+                }
+
+                // Transform the data based on the actual response structure
+                const quizData = response.data;
+                
+                this.quizzes = (Array.isArray(quizData) ? quizData : [quizData])
+                    .filter(quiz => quiz && typeof quiz === 'object')
+                    .map(quiz => ({
+                        _id: quiz._id || '',
+                        title: quiz.title || 'Untitled Quiz',
+                        description: quiz.description || '',
+                        category: quiz.category || 'General',
+                        questions: Array.isArray(quiz.questions) ? quiz.questions : [],
+                        attempts: quiz.attempts || 0,
+                        averageScore: quiz.averageScore || 0,
+                        duration: this.calculateQuizDuration(quiz)
+                    }))
+                    .filter(quiz => quiz.questions.length > 0);
+
             } catch (error) {
                 console.error("Error fetching quizzes:", error);
-                this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                if (error.response?.status === 401) {
+                    this.error = 'Please log in to view quizzes';
+                    this.$router.push('/login');
+                } else {
+                    this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                }
             } finally {
                 this.loading = false;
             }
         },
-        calculateQuizDuration(quiz) {
-            
-            if (quiz.duration) return quiz.duration;
 
+        calculateQuizDuration(quiz) {
+            if (quiz.duration) return quiz.duration;
             const questionCount = quiz.questions ? quiz.questions.length : 0;
             return Math.max(15, Math.min(questionCount * 1.5, 60)); // Between 15-60 mins
         },
+
         formatAttempts(attempts) {
             if (!attempts) return 'No attempts';
             return attempts === 1 ? '1 attempt' : `${attempts} attempts`;
         },
+
         formatScore(score) {
             if (!score) return 'No scores';
             return `${score.toFixed(1)}%`;
@@ -189,7 +213,7 @@ export default {
     },
     mounted() {
         this.fetchQuizzes();
-    },
+    }
 };
 </script>
 
