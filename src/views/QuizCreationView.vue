@@ -211,7 +211,7 @@ export default {
             }
 
             try {
-                await api.post('/quizzes', this.quizData);
+                await api.post('/quizzes/create', this.quizData);
                 this.$toast.success('Quiz created successfully!', {
                     position: 'bottom-left',
                     duration: 2000
