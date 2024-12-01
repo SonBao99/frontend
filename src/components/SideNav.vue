@@ -1,28 +1,36 @@
 <template>
     <nav class="side-nav" :class="{ 'collapsed': isCollapsed }">
-        <div class="nav-items">
-            <router-link to="/quizzes" class="nav-item" title="Quizzes">
-                <i class="bi bi-journal-text"></i>
-                <span v-if="!isCollapsed">Quizzes</span>
-            </router-link>
+        <div class="nav-content">
+            <div class="nav-links">
+                <router-link v-if="user" to="/dashboard" class="nav-item" :class="{ 'active': $route.path === '/dashboard' }">
+                    <i class="bi bi-house"></i>
+                    <span>Dashboard</span>
+                </router-link>
 
-            <router-link 
-                v-if="isLoggedIn"
-                to="/dashboard" 
-                class="nav-item" 
-                title="Dashboard">
-                <i class="bi bi-speedometer2"></i>
-                <span v-if="!isCollapsed">Dashboard</span>
-            </router-link>
+                <router-link to="/quizzes" class="nav-item" :class="{ 'active': $route.path === '/quizzes' }">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Quizzes</span>
+                </router-link>
 
-            <router-link to="/leaderboard" class="nav-item" title="Leaderboard">
-                <i class="bi bi-trophy"></i>
-                <span v-if="!isCollapsed">Leaderboard</span>
-            </router-link>
-        </div>
+                <router-link 
+                    v-if="user && user.role === 'teacher'"
+                    to="/quizzes/create" 
+                    class="nav-item" 
+                    :class="{ 'active': $route.path === '/quizzes/create' }"
+                >
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Create Quiz</span>
+                </router-link>
 
-        <div class="nav-toggle" @click="toggleNav" :title="isCollapsed ? 'Expand' : 'Collapse'">
-            <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+                <router-link to="/leaderboard" class="nav-item" :class="{ 'active': $route.path === '/leaderboard' }">
+                    <i class="bi bi-trophy"></i>
+                    <span>Leaderboard</span>
+                </router-link>
+            </div>
+
+            <button @click="toggleCollapse" class="collapse-btn">
+                <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+            </button>
         </div>
     </nav>
 </template>
@@ -36,8 +44,8 @@ export default {
         }
     },
     computed: {
-        isLoggedIn() {
-            return this.$store.state.userLoggedIn;
+        user() {
+            return this.$store.state.user;
         }
     },
     methods: {
