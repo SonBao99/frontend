@@ -11,6 +11,7 @@
 <script>
 import NavigationComp from './components/NavigationComp.vue';
 import SideNav from './components/SideNav.vue';
+import axios from 'axios';
 
 export default {
   name: 'App',
@@ -23,14 +24,41 @@ export default {
       return this.$route.path !== '/login' && this.$route.path !== '/register';
     }
   },
-  created() {
-    // Check if user is logged in from localStorage
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userData = JSON.parse(localStorage.getItem('userData'));
-    
-    if (isLoggedIn && userData) {
-      this.$store.commit('setUserLoggedIn', true);
-      this.$store.commit('setUser', userData);
+  async created() {
+    try {
+      // Verify session with backend
+      const response = await axios.get('https://backend-chih.onrender.com/api/users/verify-session', {
+        withCredentials: true
+      });
+      
+      if (response.data.isValid) {
+        this.$store.commit('setUserLoggedIn', true);
+        this.$store.commit('setUser', response.data.user);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+      } else {
+        // Clear invalid session
+        this.$store.commit('setUserLoggedIn', false);
+        this.$store.commit('setUser', null);
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userData');
+        
+        // Redirect to login if not on login or register page
+        if (!['/login', '/register'].includes(this.$route.path)) {
+          this.$router.push('/login');
+        }
+      }
+    } catch (error) {
+      console.error('Session verification error:', error);
+      // Handle session verification error
+      this.$store.commit('setUserLoggedIn', false);
+      this.$store.commit('setUser', null);
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userData');
+      
+      if (!['/login', '/register'].includes(this.$route.path)) {
+        this.$router.push('/login');
+      }
     }
   }
 }
