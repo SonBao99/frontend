@@ -71,9 +71,9 @@
 </template>
 
 <script>
-
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import api from '@/services/api';
 
 export default {
@@ -83,24 +83,37 @@ export default {
         const stats = ref({});
         const recentAttempts = ref([]);
         const router = useRouter();
+        const store = useStore();
+        const error = ref(null);
+
+        const isLoggedIn = computed(() => store.state.userLoggedIn);
 
         const fetchDashboardData = async () => {
+            if (!isLoggedIn.value) {
+                router.push('/login');
+                return;
+            }
+
             try {
                 const statsRes = await api.get('/users');
                 const userData = statsRes.data.data;
                 
+                if (!userData) {
+                    throw new Error('No user data received');
+                }
+
                 stats.value = {
-                    totalQuizzes: userData.attempts.length,
-                    averageScore: userData.attempts.length 
+                    totalQuizzes: userData.attempts?.length || 0,
+                    averageScore: userData.attempts?.length 
                         ? userData.attempts.reduce((sum, att) => sum + att.score, 0) / userData.attempts.length 
                         : 0,
-                    bestScore: userData.attempts.length 
+                    bestScore: userData.attempts?.length 
                         ? Math.max(...userData.attempts.map(att => att.score)) 
                         : 0
                 };
                 
                 recentAttempts.value = userData.attempts
-                    .sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken))
+                    ?.sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken))
                     .slice(0, 5)
                     .map(attempt => ({
                         _id: attempt._id,
@@ -108,11 +121,15 @@ export default {
                         score: attempt.score,
                         date: attempt.dateTaken,
                         quizId: attempt.quizId?._id
-                    }));
+                    })) || [];
                 
                 user.value = userData;
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
+                if (error.response?.status === 401) {
+                    router.push('/login');
+                }
+                error.value = 'Failed to load dashboard data';
             }
         };
 
@@ -157,12 +174,19 @@ export default {
             return 'needs-improvement';
         };
 
-        onMounted(fetchDashboardData);
+        onMounted(() => {
+            if (!isLoggedIn.value) {
+                router.push('/login');
+                return;
+            }
+            fetchDashboardData();
+        });
 
         return {
             user,
             stats,
             recentAttempts,
+            error,
             formatDate,
             getScoreClass,
             retakeQuiz

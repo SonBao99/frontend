@@ -44,22 +44,7 @@
                             </span>
                         </div>
 
-                        <div v-if="user && user.role === 'teacher'" class="quiz-actions-dropdown">
-                            <button @click="toggleDropdown(quiz._id)" class="action-btn">Actions
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <div v-show="activeDropdown === quiz._id" class="dropdown-menu">
-                                <router-link :to="`/quizzes/${quiz._id}/edit`" class="dropdown-item">
-                                    <i class="bi bi-pencil"></i>
-                                    Edit
-                                </router-link>
-                                <button @click="deleteQuiz(quiz._id)" class="dropdown-item delete">
-                                    <i class="bi bi-trash"></i>
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                        <router-link v-else :to="`/quizzes/${quiz._id}`" class="take-quiz-btn">
+                        <router-link :to="`/quizzes/${quiz._id}`" class="take-quiz-btn">
                             Take Quiz
                             <i class="bi bi-arrow-right"></i>
                         </router-link>
@@ -98,7 +83,7 @@
                         {{ page }}
                     </button>
                 </div>
-
+                
                 <button 
                     @click="nextPage" 
                     :disabled="currentPage === totalPages"
@@ -112,7 +97,7 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import axios from "axios";
 
 export default {
     data() {
@@ -124,7 +109,6 @@ export default {
             error: null,
             currentPage: 1,
             itemsPerPage: 6,
-            activeDropdown: null,
         };
     },
     computed: {
@@ -146,9 +130,6 @@ export default {
         },
         totalPages() {
             return Math.ceil(this.filteredQuizzes.length / this.itemsPerPage);
-        },
-        user() {
-            return this.$store.state.user;
         }
     },
     methods: {
@@ -157,30 +138,22 @@ export default {
             this.error = null;
 
             try {
-                const response = await api.get("/quizzes", {
+                
+                const response = await axios.get("https://backend-chih.onrender.com/api/quizzes", {
                     params: {
-                        populate: 'questions'
+                        populate: 'questions' 
                     }
                 });
 
-                // Check if response.data exists and is an array
-                if (!Array.isArray(response.data.quizzes)) {
-                    throw new Error('Invalid response format');
-                }
-
                 // Validate and transform quiz data
-                this.quizzes = response.data.quizzes.map(quiz => ({
+                this.quizzes = response.data.map(quiz => ({
                     ...quiz,
                     duration: this.calculateQuizDuration(quiz),
                     category: quiz.category || 'General'
                 })).filter(quiz => quiz.questions && quiz.questions.length > 0);
             } catch (error) {
                 console.error("Error fetching quizzes:", error);
-                if (error.response?.status === 401) {
-                    this.error = 'Please log in to view quizzes';
-                } else {
-                    this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
-                }
+                this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
             } finally {
                 this.loading = false;
             }
@@ -212,41 +185,11 @@ export default {
         },
         goToPage(page) {
             this.currentPage = page;
-        },
-        async deleteQuiz(quizId) {
-            if (confirm('Are you sure you want to delete this quiz?')) {
-                try {
-                    await api.delete(`/quizzes/${quizId.trim()}`);
-                    this.$toast.success('Quiz deleted successfully', {
-                        position: 'bottom-left',
-                        duration: 2000
-                    });
-                    await this.fetchQuizzes();
-                } catch (error) {
-                    console.error('Delete error:', error.response?.data);
-                    this.$toast.error(error.response?.data?.message || 'Failed to delete quiz', {
-                        position: 'bottom-left',
-                        duration: 2000
-                    });
-                }
-            }
-        },
-        toggleDropdown(quizId) {
-            this.activeDropdown = this.activeDropdown === quizId ? null : quizId;
-        },
-        closeDropdowns(event) {
-            if (!event.target.closest('.quiz-actions-dropdown')) {
-                this.activeDropdown = null;
-            }
         }
     },
     mounted() {
         this.fetchQuizzes();
-        document.addEventListener('click', this.closeDropdowns);
     },
-    beforeUnmount() {
-        document.removeEventListener('click', this.closeDropdowns);
-    }
 };
 </script>
 
@@ -367,7 +310,6 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: relative;
 }
 
 .quiz-stats {
@@ -490,114 +432,5 @@ export default {
 .page-number:not(.active):hover {
     background: #f7fafc;
     border-color: #cbd5e0;
-}
-
-.quiz-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.edit-quiz-btn, .delete-quiz-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.edit-quiz-btn {
-    background: #3B82F6;
-    color: white;
-    text-decoration: none;
-}
-
-.delete-quiz-btn {
-    background: #EF4444;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-.edit-quiz-btn:hover, .delete-quiz-btn:hover {
-    transform: translateY(-2px);
-    filter: brightness(110%);
-}
-
-.quiz-actions-dropdown {
-    position: relative;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #3B82F6;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.action-btn:hover {
-    background: #2563EB;
-    transform: translateX(4px);
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    min-width: 160px;
-    z-index: 10;
-    margin-top: 0.5rem;
-}
-
-.dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    color: #4a5568;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    font-size: 0.875rem;
-}
-
-.dropdown-item:first-child {
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-}
-
-.dropdown-item:last-child {
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-}
-
-.dropdown-item:hover {
-    background: #f7fafc;
-    color: #2d3748;
-}
-
-.dropdown-item.delete {
-    color: #e53e3e;
-}
-
-.dropdown-item.delete:hover {
-    background: #FED7D7;
-    color: #C53030;
 }
 </style>
