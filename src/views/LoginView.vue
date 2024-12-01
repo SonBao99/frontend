@@ -33,6 +33,7 @@
 
 <script>
 import AuthCard from '@/components/AuthCard.vue'
+import axios from 'axios'
 
 export default {
   name: "LoginView",
@@ -52,21 +53,31 @@ export default {
   methods: {
     async login() {
       try {
-        await this.$store.dispatch("login", {
+        const response = await axios.post('https://backend-chih.onrender.com/api/login', {
           email: this.email,
           password: this.password,
           rememberMe: this.rememberMe
+        }, {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
-        if (this.isUserLoggedIn) {
+
+        if (response.data) {
+          await this.$store.commit('setUserLoggedIn', true);
           await this.$router.push("/quizzes");
-          this.$toast.success("Logged in successfully.", {position: "bottom-left", duration: 1000});
+          this.$toast.success("Logged in successfully.", {
+            position: "bottom-left", 
+            duration: 1000
+          });
         }
       } catch (err) {
-        console.log(err); // Inspect error structure
+        console.error('Login error:', err);
         let errorMessage = "Authentication failed!";
 
         if (err.response?.data?.details) {
-          errorMessage = err.response.data.details; // Use the `details` field
+          errorMessage = err.response.data.details;
         } else if (err.response) {
           switch (err.response.status) {
             case 404:
@@ -82,7 +93,6 @@ export default {
               errorMessage = "An unexpected error occurred.";
           }
         }
-
 
         this.$toast.error(errorMessage, {
           position: "bottom-left",
