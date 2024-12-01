@@ -157,22 +157,44 @@ export default {
             this.error = null;
 
             try {
-                
-                const response = await axios.get("https://backend-chih.onrender.com/api/quizzes", {
-                    params: {
-                        populate: 'questions' 
+                const response = await axios.get('https://backend-chih.onrender.com/api/quizzes', {
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
                 });
 
-                // Validate and transform quiz data
-                this.quizzes = response.data.map(quiz => ({
-                    ...quiz,
-                    duration: this.calculateQuizDuration(quiz),
-                    category: quiz.category || 'General'
-                })).filter(quiz => quiz.questions && quiz.questions.length > 0);
+                // Check if response.data exists and handle both data structures
+                const quizData = response.data.data || response.data;
+                
+                // Ensure we have an array to map over
+                if (!Array.isArray(quizData)) {
+                    console.error('Invalid quiz data format:', quizData);
+                    throw new Error('Invalid data format received from server');
+                }
+
+                this.quizzes = quizData
+                    .filter(quiz => quiz && typeof quiz === 'object')
+                    .map(quiz => ({
+                        _id: quiz._id || '',
+                        title: quiz.title || 'Untitled Quiz',
+                        description: quiz.description || '',
+                        category: quiz.category || 'General',
+                        questions: Array.isArray(quiz.questions) ? quiz.questions : [],
+                        attempts: quiz.attempts || 0,
+                        averageScore: quiz.averageScore || 0,
+                        duration: this.calculateQuizDuration(quiz)
+                    }))
+                    .filter(quiz => quiz.questions.length > 0);
+
             } catch (error) {
-                console.error("Error fetching quizzes:", error);
-                this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                console.error('Error fetching quizzes:', error);
+                if (error.response?.status === 401) {
+                    this.error = 'Please log in to view quizzes';
+                    this.$router.push('/login');
+                } else {
+                    this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                }
             } finally {
                 this.loading = false;
             }
