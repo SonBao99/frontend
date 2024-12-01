@@ -112,9 +112,6 @@ import api from '@/services/api';
 
 export default {
     name: 'QuizCreationView',
-    mounted() {
-        document.title = 'Create Quiz';
-    },
     data() {
         return {
             quizData: {
@@ -130,6 +127,20 @@ export default {
                 questions: []
             }
         };
+    },
+    computed: {
+        isLoggedIn() {
+            return this.$store.state.userLoggedIn;
+        }
+    },
+    mounted() {
+        if (!this.isLoggedIn) {
+            this.$router.push('/login');
+            this.$toast.error('Please log in to create a quiz', {
+                position: 'bottom-left',
+                duration: 2000
+            });
+        }
     },
     methods: {
         createEmptyQuestion() {
@@ -207,10 +218,18 @@ export default {
                 });
                 this.$router.push('/quizzes');
             } catch (error) {
-                this.$toast.error(error.response?.data?.message || 'Failed to create quiz', {
-                    position: 'bottom-left',
-                    duration: 2000
-                });
+                if (error.response?.status === 401) {
+                    this.$router.push('/login');
+                    this.$toast.error('Please log in to create a quiz', {
+                        position: 'bottom-left',
+                        duration: 2000
+                    });
+                } else {
+                    this.$toast.error(error.response?.data?.message || 'Failed to create quiz', {
+                        position: 'bottom-left',
+                        duration: 2000
+                    });
+                }
             }
         }
     }

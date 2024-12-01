@@ -1,8 +1,12 @@
 import axios from "axios";
 
-const baseUrl = process.env.NODE_ENV === "development" 
-    ? (process.env.VUE_APP_SERVER || "http://localhost:3000/api")
-    : "https://backend-chih.onrender.com/api";
+
+let baseUrl;
+if (process.env.NODE_ENV === "development") {
+    baseUrl = process.env.VUE_APP_SERVER || "http://localhost:3000/api";
+} else {
+    baseUrl = "https://backend-chih.onrender.com/api";
+}
 
 const api = axios.create({
     baseURL: baseUrl,

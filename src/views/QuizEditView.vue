@@ -112,11 +112,26 @@
 </template>
 
 <script>
-import axios from 'axios';
 import api from '@/services/api';
 
 export default {
     name: 'QuizEditView',
+    computed: {
+        isLoggedIn() {
+            return this.$store.state.userLoggedIn;
+        }
+    },
+    mounted() {
+        if (!this.isLoggedIn) {
+            this.$router.push('/login');
+            this.$toast.error('Please log in to edit quizzes', {
+                position: 'bottom-left',
+                duration: 2000
+            });
+            return;
+        }
+        this.fetchQuiz();
+    },
     data() {
         return {
             quizData: null,
@@ -127,10 +142,6 @@ export default {
                 questions: []
             }
         };
-    },
-    async mounted() {
-        document.title = 'Edit Quiz';
-        await this.fetchQuiz();
     },
     methods: {
         async fetchQuiz() {
@@ -211,22 +222,25 @@ export default {
             }
 
             try {
-                await axios.put(
-                    `http://localhost:3000/api/quizzes/${this.$route.params.id}`,
-                    this.quizData,
-                    { withCredentials: true }
-                );
-                
+                await api.put(`/quizzes/${this.$route.params.id}`, this.quizData);
                 this.$toast.success('Quiz updated successfully!', {
                     position: 'bottom-left',
                     duration: 2000
                 });
                 this.$router.push('/quizzes');
             } catch (error) {
-                this.$toast.error(error.response?.data?.message || 'Failed to update quiz', {
-                    position: 'bottom-left',
-                    duration: 2000
-                });
+                if (error.response?.status === 401) {
+                    this.$router.push('/login');
+                    this.$toast.error('Please log in to edit quizzes', {
+                        position: 'bottom-left',
+                        duration: 2000
+                    });
+                } else {
+                    this.$toast.error(error.response?.data?.message || 'Failed to update quiz', {
+                        position: 'bottom-left',
+                        duration: 2000
+                    });
+                }
             }
         }
     }
