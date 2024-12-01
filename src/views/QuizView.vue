@@ -112,7 +112,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from '@/services/api';
 
 export default {
     data() {
@@ -157,22 +157,30 @@ export default {
             this.error = null;
 
             try {
-                
-                const response = await axios.get("/quizzes", {
+                const response = await api.get("/quizzes", {
                     params: {
-                        populate: 'questions' 
+                        populate: 'questions'
                     }
                 });
 
+                // Check if response.data exists and is an array
+                if (!Array.isArray(response.data.quizzes)) {
+                    throw new Error('Invalid response format');
+                }
+
                 // Validate and transform quiz data
-                this.quizzes = response.data.map(quiz => ({
+                this.quizzes = response.data.quizzes.map(quiz => ({
                     ...quiz,
                     duration: this.calculateQuizDuration(quiz),
                     category: quiz.category || 'General'
                 })).filter(quiz => quiz.questions && quiz.questions.length > 0);
             } catch (error) {
                 console.error("Error fetching quizzes:", error);
-                this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                if (error.response?.status === 401) {
+                    this.error = 'Please log in to view quizzes';
+                } else {
+                    this.error = error.response?.data?.message || 'Failed to load quizzes. Please try again.';
+                }
             } finally {
                 this.loading = false;
             }
@@ -208,9 +216,7 @@ export default {
         async deleteQuiz(quizId) {
             if (confirm('Are you sure you want to delete this quiz?')) {
                 try {
-                    await axios.delete(`/quizzes/${quizId.trim()}`, {
-                        withCredentials: true
-                    });
+                    await api.delete(`/quizzes/${quizId.trim()}`);
                     this.$toast.success('Quiz deleted successfully', {
                         position: 'bottom-left',
                         duration: 2000
